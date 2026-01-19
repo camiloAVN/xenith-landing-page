@@ -1,31 +1,75 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { hash } from 'bcrypt'
 import { prisma } from '@/lib/db/prisma'
+import { z } from 'zod'
 
-export async function POST() {
+const setupSchema = z.object({
+  setupKey: z.string().min(1, 'Setup key is required'),
+  email: z.string().email().optional(),
+  password: z.string().min(8).optional(),
+})
+
+export async function POST(request: NextRequest) {
   try {
-    // Check if admin already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: 'admin@xenith.com' },
-    })
+    const body = await request.json()
+    const { setupKey, email, password } = setupSchema.parse(body)
 
-    if (existingUser) {
+    // Verify setup key
+    const validSetupKey = process.env.ADMIN_SETUP_KEY
+    if (!validSetupKey || setupKey !== validSetupKey) {
+      // Log failed attempt (in production, send to monitoring)
+      console.warn(`[SECURITY] Failed admin setup attempt from IP: ${request.headers.get('x-forwarded-for') || 'unknown'}`)
       return NextResponse.json(
-        { message: 'Admin user already exists' },
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Use provided values or fall back to environment variables
+    const adminEmail = email || process.env.ADMIN_EMAIL
+    const adminPassword = password || process.env.ADMIN_PASSWORD
+
+    if (!adminEmail || !adminPassword) {
+      return NextResponse.json(
+        { error: 'Admin credentials not configured' },
+        { status: 500 }
+      )
+    }
+
+    // Validate password strength
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+    if (!passwordRegex.test(adminPassword)) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character' },
         { status: 400 }
       )
     }
 
-    // Create admin user with hashed password
-    const hashedPassword = await hash('admin123', 10)
+    // Check if admin already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: adminEmail },
+    })
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'Admin user already exists' },
+        { status: 400 }
+      )
+    }
+
+    // Create admin user with hashed password (12 rounds for better security)
+    const hashedPassword = await hash(adminPassword, 12)
 
     const user = await prisma.user.create({
       data: {
-        email: 'admin@xenith.com',
+        email: adminEmail,
         name: 'Admin XENITH',
         password: hashedPassword,
       },
     })
+
+    // Log successful creation
+    console.info(`[SECURITY] Admin user created: ${user.email}`)
 
     return NextResponse.json({
       message: 'Admin user created successfully',
@@ -36,9 +80,16 @@ export async function POST() {
       },
     })
   } catch (error) {
-    console.error('Error creating admin user:', error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.issues },
+        { status: 400 }
+      )
+    }
+
+    console.error('[ERROR] Error creating admin user:', error)
     return NextResponse.json(
-      { message: 'Error creating admin user', error: String(error) },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

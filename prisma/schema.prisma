@@ -18,6 +18,8 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?   // For credentials provider
+  role          UserRole  @default(USER)
+  isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -222,4 +224,10 @@ enum QuotationStatus {
   ACCEPTED // Aceptada
   REJECTED // Rechazada
   EXPIRED  // Expirada
+}
+
+enum UserRole {
+  SUPERADMIN // Solo camilo.vargas@xenith.com.co
+  ADMIN      // Administradores
+  USER       // Usuarios normales
 }

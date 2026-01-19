@@ -1,28 +1,57 @@
 import { PrismaClient } from '@prisma/client'
+import { hash } from 'bcrypt'
 
 const prisma = new PrismaClient()
 
-async function hashPassword(password: string): Promise<string> {
-  // Simple hash for demo - in production use bcrypt or similar
-  // For better-auth, we'll let it handle the hashing
-  return password
-}
-
 async function main() {
-  console.log('🌱 Seeding database...')
+  console.log('Seeding database...')
 
-  // Create demo user
-  const demoUser = await prisma.user.upsert({
-    where: { email: 'admin@xenith.com' },
-    update: {},
+  // Hash password with bcrypt
+  const hashedPassword = await hash('admin123', 12)
+
+  // Create superadmin user first
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'camilo.vargas@xenith.com.co' },
+    update: {
+      password: hashedPassword,
+      role: 'SUPERADMIN',
+    },
     create: {
-      email: 'admin@xenith.com',
-      name: 'Admin XENITH',
-      password: await hashPassword('admin123'), // Will be hashed by better-auth
+      email: 'camilo.vargas@xenith.com.co',
+      name: 'Camilo Vargas',
+      password: hashedPassword,
+      role: 'SUPERADMIN',
     },
   })
 
-  console.log('✅ Created demo user:', demoUser.email)
+  console.log('Created superadmin:', superAdmin.email)
+
+  // Find old admin user
+  const oldAdmin = await prisma.user.findUnique({
+    where: { email: 'admin@xenith.com' },
+  })
+
+  // If old admin exists, reassign their data and delete
+  if (oldAdmin) {
+    // Reassign projects
+    await prisma.project.updateMany({
+      where: { assignedTo: oldAdmin.id },
+      data: { assignedTo: superAdmin.id },
+    })
+
+    // Reassign quotations
+    await prisma.quotation.updateMany({
+      where: { createdBy: oldAdmin.id },
+      data: { createdBy: superAdmin.id },
+    })
+
+    // Delete old admin
+    await prisma.user.delete({
+      where: { id: oldAdmin.id },
+    })
+
+    console.log('Deleted old admin: admin@xenith.com')
+  }
 
   // Create demo client
   const demoClient = await prisma.client.upsert({
@@ -49,7 +78,7 @@ async function main() {
       status: 'IN_PROGRESS',
       priority: 'HIGH',
       clientId: demoClient.id,
-      assignedTo: demoUser.id,
+      assignedTo: superAdmin.id,
       budget: 150000,
       startDate: new Date('2026-01-01'),
       endDate: new Date('2026-06-30'),
@@ -68,7 +97,7 @@ async function main() {
       description: 'Cotización para desarrollo de sistema de automatización industrial',
       clientId: demoClient.id,
       projectId: demoProject.id,
-      createdBy: demoUser.id,
+      createdBy: superAdmin.id,
       status: 'SENT',
       validUntil: new Date('2026-02-15'),
       subtotal: 150000,
@@ -107,10 +136,10 @@ async function main() {
   console.log('✅ Created demo quotation:', demoQuotation.quotationNumber)
 
   console.log('')
-  console.log('🎉 Seeding completed!')
+  console.log('Seeding completed!')
   console.log('')
-  console.log('📝 Demo credentials:')
-  console.log('   Email: admin@xenith.com')
+  console.log('Credenciales:')
+  console.log('   Email: camilo.vargas@xenith.com.co')
   console.log('   Password: admin123')
   console.log('')
 }
