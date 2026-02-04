@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const quotationItemSchema = z.object({
+  inventoryItemId: z.string().optional().nullable(),
   description: z.string().min(3, 'La descripción debe tener al menos 3 caracteres'),
   quantity: z.number().min(1, 'La cantidad debe ser al menos 1'),
   unitPrice: z.number().min(0, 'El precio unitario debe ser positivo'),
@@ -28,6 +29,7 @@ export type QuotationStatus = 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPI
 export type QuotationItem = {
   id: string
   quotationId: string
+  inventoryItemId: string | null
   description: string
   quantity: number
   unitPrice: number
@@ -35,6 +37,18 @@ export type QuotationItem = {
   order: number
   createdAt: Date
   updatedAt: Date
+  inventoryItem?: {
+    id: string
+    serialNumber: string | null
+    assetTag: string | null
+    product?: {
+      id: string
+      sku: string
+      name: string
+      brand: string | null
+      model: string | null
+    }
+  } | null
 }
 
 export type Quotation = {

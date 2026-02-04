@@ -45,6 +45,20 @@ export type Project = {
     name: string | null
     email: string
   }
+  quotations?: Array<{
+    id: string
+    quotationNumber: string
+    title: string
+    status: string
+    total: number
+    createdAt: Date
+  }>
+  tasks?: Array<{
+    id: string
+    title: string
+    status: string
+    completed: boolean
+  }>
 }
 
 export const statusLabels: Record<ProjectStatus, string> = {

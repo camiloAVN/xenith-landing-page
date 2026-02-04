@@ -79,11 +79,35 @@ const styles = StyleSheet.create({
     borderBottom: '1 solid #e5e7eb',
     fontSize: 9,
   },
-  tableCol1: { width: '10%' },
-  tableCol2: { width: '45%' },
+  tableRowInventory: {
+    flexDirection: 'row',
+    padding: 8,
+    borderBottom: '1 solid #e5e7eb',
+    fontSize: 9,
+    backgroundColor: '#faf5ff',
+  },
+  tableCol1: { width: '8%' },
+  tableCol2: { width: '42%' },
   tableCol3: { width: '15%', textAlign: 'right' },
   tableCol4: { width: '15%', textAlign: 'right' },
-  tableCol5: { width: '15%', textAlign: 'right' },
+  tableCol5: { width: '20%', textAlign: 'right' },
+  itemDescription: {
+    fontSize: 9,
+    color: '#1f2937',
+  },
+  itemDetails: {
+    fontSize: 7,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  inventoryBadge: {
+    fontSize: 6,
+    color: '#7c3aed',
+    backgroundColor: '#ede9fe',
+    padding: '2 4',
+    borderRadius: 2,
+    marginTop: 2,
+  },
   totals: {
     marginTop: 20,
     alignItems: 'flex-end',
@@ -144,10 +168,22 @@ interface QuotationPDFProps {
 
 export function QuotationPDFDocument({ quotation }: QuotationPDFProps) {
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-MX', {
+    return new Intl.NumberFormat('es-CO', {
       style: 'currency',
-      currency: 'MXN',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(value)
+  }
+
+  const getItemInventoryDetails = (item: any) => {
+    if (!item.inventoryItem) return null
+    const inv = item.inventoryItem
+    const parts = []
+    if (inv.product?.sku) parts.push(`SKU: ${inv.product.sku}`)
+    if (inv.serialNumber) parts.push(`S/N: ${inv.serialNumber}`)
+    if (inv.assetTag) parts.push(`Activo: ${inv.assetTag}`)
+    return parts.length > 0 ? parts.join(' | ') : null
   }
 
   return (
@@ -207,15 +243,26 @@ export function QuotationPDFDocument({ quotation }: QuotationPDFProps) {
             <Text style={styles.tableCol4}>Precio Unit.</Text>
             <Text style={styles.tableCol5}>Total</Text>
           </View>
-          {quotation.items.map((item: any, index: number) => (
-            <View key={item.id} style={styles.tableRow}>
-              <Text style={styles.tableCol1}>{index + 1}</Text>
-              <Text style={styles.tableCol2}>{item.description}</Text>
-              <Text style={styles.tableCol3}>{item.quantity}</Text>
-              <Text style={styles.tableCol4}>{formatCurrency(Number(item.unitPrice))}</Text>
-              <Text style={styles.tableCol5}>{formatCurrency(Number(item.total))}</Text>
-            </View>
-          ))}
+          {quotation.items.map((item: any, index: number) => {
+            const inventoryDetails = getItemInventoryDetails(item)
+            return (
+              <View key={item.id} style={item.inventoryItem ? styles.tableRowInventory : styles.tableRow}>
+                <Text style={styles.tableCol1}>{index + 1}</Text>
+                <View style={styles.tableCol2}>
+                  <Text style={styles.itemDescription}>{item.description}</Text>
+                  {inventoryDetails && (
+                    <Text style={styles.itemDetails}>{inventoryDetails}</Text>
+                  )}
+                  {item.inventoryItem && (
+                    <Text style={styles.inventoryBadge}>INVENTARIO</Text>
+                  )}
+                </View>
+                <Text style={styles.tableCol3}>{item.quantity}</Text>
+                <Text style={styles.tableCol4}>{formatCurrency(Number(item.unitPrice))}</Text>
+                <Text style={styles.tableCol5}>{formatCurrency(Number(item.total))}</Text>
+              </View>
+            )
+          })}
         </View>
 
         {/* Totals */}

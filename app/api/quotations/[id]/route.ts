@@ -38,6 +38,24 @@ export async function GET(
         },
         items: {
           orderBy: { order: 'asc' },
+          include: {
+            inventoryItem: {
+              select: {
+                id: true,
+                serialNumber: true,
+                assetTag: true,
+                product: {
+                  select: {
+                    id: true,
+                    sku: true,
+                    name: true,
+                    brand: true,
+                    model: true,
+                  },
+                },
+              },
+            },
+          },
         },
       },
     })
@@ -81,6 +99,7 @@ export async function PUT(
       subtotal = subtotal.plus(itemTotal)
 
       return {
+        inventoryItemId: item.inventoryItemId || null,
         description: item.description,
         quantity: item.quantity,
         unitPrice: new Decimal(item.unitPrice),
@@ -144,6 +163,24 @@ export async function PUT(
         },
         items: {
           orderBy: { order: 'asc' },
+          include: {
+            inventoryItem: {
+              select: {
+                id: true,
+                serialNumber: true,
+                assetTag: true,
+                product: {
+                  select: {
+                    id: true,
+                    sku: true,
+                    name: true,
+                    brand: true,
+                    model: true,
+                  },
+                },
+              },
+            },
+          },
         },
       },
     })

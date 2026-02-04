@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/Badge'
 import { ArrowLeft, Edit, User, Building2, Calendar, DollarSign, Trash2, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { statusLabels, statusColors, priorityLabels, priorityColors } from '@/lib/validations/project'
+import { statusLabels, statusColors, priorityLabels, priorityColors, Project } from '@/lib/validations/project'
 
 export default function ProjectDetailPage({
   params,
@@ -20,7 +20,7 @@ export default function ProjectDetailPage({
   const router = useRouter()
   const { id } = use(params)
   const { currentProject, isLoading, fetchProject, deleteProject } = useProjects()
-  const [projectData, setProjectData] = useState<any>(null)
+  const [projectData, setProjectData] = useState<Project | null>(null)
 
   useEffect(() => {
     const loadProject = async () => {

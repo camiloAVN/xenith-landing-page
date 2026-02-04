@@ -1,11 +1,10 @@
 services:
   postgres:
-    image: postgres:16-alpine
-    container_name: xenith_db
+    image: postgres
+    container_name: xenith-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: xenith
-      POSTGRES_PASSWORD: xenith123
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: xenith_db
     ports:
       - "5432:5432"

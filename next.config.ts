@@ -46,6 +46,16 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Workaround for Turbopack + native modules on Windows
+  serverExternalPackages: ['@prisma/client', 'prisma', 'bcrypt'],
+
+  // Use webpack instead of Turbopack for dev (Windows compatibility)
+  experimental: {
+    turbo: {
+      // Disable Turbopack's problematic junction points on Windows
+    },
+  },
+
   // Security headers for all routes
   async headers() {
     return [

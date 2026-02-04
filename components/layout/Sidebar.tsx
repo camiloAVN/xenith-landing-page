@@ -11,6 +11,13 @@ import {
   ChevronLeft,
   UserCog,
   Shield,
+  Package,
+  Boxes,
+  Tags,
+  Radio,
+  ArrowRightLeft,
+  Truck,
+  FolderTree,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Button } from '@/components/ui/Button'
@@ -48,6 +55,47 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       name: 'Cotizaciones',
       href: '/dashboard/cotizaciones',
       icon: FileText,
+    },
+  ]
+
+  const inventoryNavigation = [
+    {
+      name: 'Inventario',
+      href: '/dashboard/inventario',
+      icon: Package,
+    },
+    {
+      name: 'Productos',
+      href: '/dashboard/inventario/productos',
+      icon: Boxes,
+    },
+    {
+      name: 'Items',
+      href: '/dashboard/inventario/items',
+      icon: Tags,
+    },
+    {
+      name: 'RFID',
+      href: '/dashboard/inventario/rfid',
+      icon: Radio,
+    },
+    {
+      name: 'Movimientos',
+      href: '/dashboard/inventario/movimientos',
+      icon: ArrowRightLeft,
+    },
+  ]
+
+  const configNavigation = [
+    {
+      name: 'Categorias',
+      href: '/dashboard/categorias',
+      icon: FolderTree,
+    },
+    {
+      name: 'Proveedores',
+      href: '/dashboard/proveedores',
+      icon: Truck,
     },
   ]
 
@@ -119,6 +167,66 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                         'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
                         active
                           ? 'bg-violet-500/10 text-violet-400 border border-violet-500/20'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-900'
+                      )}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      {item.name}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+
+            {/* Inventory Section */}
+            <div className="mt-6 mb-2 px-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                <Package className="w-3 h-3" />
+                Inventario
+              </p>
+            </div>
+            <ul className="space-y-1">
+              {inventoryNavigation.map((item) => {
+                const active = isActive(item.href)
+                return (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      onClick={onClose}
+                      className={cn(
+                        'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
+                        active
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-900'
+                      )}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      {item.name}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+
+            {/* Config Section */}
+            <div className="mt-6 mb-2 px-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                <FolderTree className="w-3 h-3" />
+                Configuracion
+              </p>
+            </div>
+            <ul className="space-y-1">
+              {configNavigation.map((item) => {
+                const active = isActive(item.href)
+                return (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      onClick={onClose}
+                      className={cn(
+                        'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
+                        active
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                           : 'text-gray-400 hover:text-white hover:bg-gray-900'
                       )}
                     >

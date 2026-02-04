@@ -35,6 +35,24 @@ export async function GET(
         },
         items: {
           orderBy: { order: 'asc' },
+          include: {
+            inventoryItem: {
+              select: {
+                id: true,
+                serialNumber: true,
+                assetTag: true,
+                product: {
+                  select: {
+                    id: true,
+                    sku: true,
+                    name: true,
+                    brand: true,
+                    model: true,
+                  },
+                },
+              },
+            },
+          },
         },
       },
     })

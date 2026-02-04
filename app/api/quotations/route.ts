@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
       subtotal = subtotal.plus(itemTotal)
 
       return {
+        inventoryItemId: item.inventoryItemId || null,
         description: item.description,
         quantity: item.quantity,
         unitPrice: new Decimal(item.unitPrice),
