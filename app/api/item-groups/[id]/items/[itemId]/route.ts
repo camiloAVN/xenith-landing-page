@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
+import { canEditModule } from '@/lib/auth/check-permission'
 
 // DELETE /api/item-groups/[id]/items/[itemId] - Remove an item from a group
 export async function DELETE(
@@ -8,9 +8,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('grupos')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id: groupId, itemId } = await params

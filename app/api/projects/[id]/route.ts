@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { projectSchema } from '@/lib/validations/project'
+import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 import { Decimal } from '@prisma/client/runtime/library'
 
@@ -11,9 +11,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canViewModule('proyectos')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -69,9 +72,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('proyectos')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -119,7 +125,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Datos inválidos', issues: error.issues },
+        { error: 'Datos invalidos', issues: error.issues },
         { status: 400 }
       )
     }
@@ -138,9 +144,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('proyectos')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params

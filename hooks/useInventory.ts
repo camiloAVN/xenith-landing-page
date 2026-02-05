@@ -32,6 +32,7 @@ export function useInventory() {
     status?: string
     type?: string
     productId?: string
+    silent?: boolean
   }) => {
     setLoading(true)
     setError(null)
@@ -45,6 +46,12 @@ export function useInventory() {
 
       const response = await fetch(url.toString())
 
+      // Handle permission errors silently - just set empty array
+      if (response.status === 401 || response.status === 403) {
+        setItems([])
+        return
+      }
+
       if (!response.ok) {
         throw new Error('Error al obtener items de inventario')
       }
@@ -54,7 +61,9 @@ export function useInventory() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido'
       setError(message)
-      toast.error(message)
+      if (!options?.silent) {
+        toast.error(message)
+      }
     } finally {
       setLoading(false)
     }
@@ -239,12 +248,18 @@ export function useInventory() {
     }
   }, [updateItem, setLoading, setError])
 
-  const fetchSummary = useCallback(async () => {
+  const fetchSummary = useCallback(async (options?: { silent?: boolean }) => {
     setLoading(true)
     setError(null)
 
     try {
       const response = await fetch('/api/inventory/summary')
+
+      // Handle permission errors silently - just set null summary
+      if (response.status === 401 || response.status === 403) {
+        setSummary(null)
+        return null
+      }
 
       if (!response.ok) {
         throw new Error('Error al obtener resumen de inventario')
@@ -256,7 +271,9 @@ export function useInventory() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido'
       setError(message)
-      toast.error(message)
+      if (!options?.silent) {
+        toast.error(message)
+      }
       return null
     } finally {
       setLoading(false)
@@ -268,6 +285,7 @@ export function useInventory() {
     inventoryItemId?: string
     limit?: number
     offset?: number
+    silent?: boolean
   }) => {
     setLoading(true)
     setError(null)
@@ -281,6 +299,12 @@ export function useInventory() {
 
       const response = await fetch(url.toString())
 
+      // Handle permission errors silently - just set empty array
+      if (response.status === 401 || response.status === 403) {
+        setMovements([])
+        return { movements: [], total: 0 }
+      }
+
       if (!response.ok) {
         throw new Error('Error al obtener movimientos')
       }
@@ -291,7 +315,9 @@ export function useInventory() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido'
       setError(message)
-      toast.error(message)
+      if (!options?.silent) {
+        toast.error(message)
+      }
       return null
     } finally {
       setLoading(false)

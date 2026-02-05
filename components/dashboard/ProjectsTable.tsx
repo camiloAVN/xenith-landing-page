@@ -11,10 +11,11 @@ import { es } from 'date-fns/locale'
 
 interface ProjectsTableProps {
   projects: Project[]
-  onDelete: (id: string) => void
+  onDelete?: (id: string) => void
+  showActions?: boolean
 }
 
-export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
+export function ProjectsTable({ projects, onDelete, showActions = true }: ProjectsTableProps) {
   if (projects.length === 0) {
     return (
       <div className="text-center py-12">
@@ -77,28 +78,34 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                       <Eye className="w-4 h-4" />
                     </Button>
                   </Link>
-                  <Link href={`/dashboard/proyectos/${project.id}/editar`}>
-                    <Button variant="ghost" size="sm" title="Editar">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                    onClick={() => {
-                      if (
-                        confirm(
-                          '¿Estás seguro de que deseas eliminar este proyecto?'
-                        )
-                      ) {
-                        onDelete(project.id)
-                      }
-                    }}
-                    title="Eliminar"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {showActions && (
+                    <>
+                      <Link href={`/dashboard/proyectos/${project.id}/editar`}>
+                        <Button variant="ghost" size="sm" title="Editar">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                      {onDelete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                '¿Estas seguro de que deseas eliminar este proyecto?'
+                              )
+                            ) {
+                              onDelete(project.id)
+                            }
+                          }}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </>
+                  )}
                 </div>
               </td>
             </tr>

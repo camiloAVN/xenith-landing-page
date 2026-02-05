@@ -48,9 +48,18 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         role: true,
+        position: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        permissions: {
+          select: {
+            id: true,
+            module: true,
+            canView: true,
+            canEdit: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -104,21 +113,43 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hash(validatedData.password, 12)
 
+    // Preparar permisos si se proporcionan
+    const permissionsData = validatedData.permissions?.map((p) => ({
+      module: p.module,
+      canView: p.canView,
+      canEdit: p.canEdit,
+    }))
+
     const user = await prisma.user.create({
       data: {
         name: validatedData.name,
         email: validatedData.email.toLowerCase(),
         password: hashedPassword,
         role: validatedData.role,
+        position: validatedData.position || null,
+        ...(permissionsData && permissionsData.length > 0 && {
+          permissions: {
+            create: permissionsData,
+          },
+        }),
       },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        position: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        permissions: {
+          select: {
+            id: true,
+            module: true,
+            canView: true,
+            canEdit: true,
+          },
+        },
       },
     })
 

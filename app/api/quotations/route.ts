@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { quotationSchema } from '@/lib/validations/quotation'
+import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 import { Decimal } from '@prisma/client/runtime/library'
 
@@ -34,9 +34,12 @@ async function generateQuotationNumber(): Promise<string> {
 // GET /api/quotations - List all quotations with filters
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canViewModule('cotizaciones')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { searchParams } = new URL(request.url)
@@ -126,9 +129,12 @@ export async function GET(request: NextRequest) {
 // POST /api/quotations - Create new quotation
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('cotizaciones')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const body = await request.json()
@@ -185,7 +191,7 @@ export async function POST(request: NextRequest) {
         description: validatedData.description || null,
         clientId: validatedData.clientId,
         projectId: validatedData.projectId || null,
-        createdBy: session.user.id,
+        createdBy: permissionCheck.userId!,
         status: validatedData.status,
         validUntil: new Date(validatedData.validUntil),
         subtotal,
@@ -245,14 +251,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Datos inválidos', issues: error.issues },
+        { error: 'Datos invalidos', issues: error.issues },
         { status: 400 }
       )
     }
 
     console.error('Error creating quotation:', error)
     return NextResponse.json(
-      { error: 'Error al crear cotización' },
+      { error: 'Error al crear cotizacion' },
       { status: 500 }
     )
   }

@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { clientSchema } from '@/lib/validations/client'
+import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 
 // GET /api/clients - List all clients
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canViewModule('clientes')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { searchParams } = new URL(request.url)
@@ -41,9 +44,12 @@ export async function GET(request: NextRequest) {
 // POST /api/clients - Create new client
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('clientes')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const body = await request.json()
@@ -57,7 +63,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Datos inválidos', issues: error.issues },
+        { error: 'Datos invalidos', issues: error.issues },
         { status: 400 }
       )
     }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
+import { RouteGuard } from '@/components/auth/RouteGuard'
 
 export default function DashboardLayout({
   children,
@@ -23,7 +24,9 @@ export default function DashboardLayout({
       <div className="flex-1 lg:pl-64">
         <DashboardHeader onMenuClick={() => setSidebarOpen(true)} />
         <main className="p-6">
-          {children}
+          <RouteGuard>
+            {children}
+          </RouteGuard>
         </main>
       </div>
     </div>

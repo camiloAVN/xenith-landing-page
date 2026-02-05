@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { addItemToGroupSchema } from '@/lib/validations/itemGroup'
+import { canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 
 // POST /api/item-groups/[id]/items - Add an item to a group
@@ -10,9 +10,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('grupos')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id: groupId } = await params

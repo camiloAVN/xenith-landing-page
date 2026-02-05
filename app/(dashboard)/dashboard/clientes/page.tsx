@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useClients } from '@/hooks/useClients'
+import { usePermissions } from '@/hooks/usePermissions'
 import { ClientsTable } from '@/components/dashboard/ClientsTable'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -13,7 +14,10 @@ import { Plus, Search } from 'lucide-react'
 export default function ClientsPage() {
   const router = useRouter()
   const { clients, isLoading, searchQuery, setSearchQuery, fetchClients, deleteClient } = useClients()
+  const { canEdit } = usePermissions()
   const [localSearch, setLocalSearch] = useState(searchQuery)
+
+  const hasEditPermission = canEdit('clientes')
 
   useEffect(() => {
     fetchClients(searchQuery)
@@ -40,12 +44,14 @@ export default function ClientsPage() {
             Gestiona tu cartera de clientes
           </p>
         </div>
-        <Link href="/dashboard/clientes/nuevo">
-          <Button variant="primary">
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Cliente
-          </Button>
-        </Link>
+        {hasEditPermission && (
+          <Link href="/dashboard/clientes/nuevo">
+            <Button variant="primary">
+              <Plus className="w-4 h-4 mr-2" />
+              Nuevo Cliente
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Card>
@@ -71,7 +77,11 @@ export default function ClientsPage() {
               <p className="text-gray-400 mt-4">Cargando clientes...</p>
             </div>
           ) : (
-            <ClientsTable clients={clients} onDelete={handleDelete} />
+            <ClientsTable
+              clients={clients}
+              onDelete={hasEditPermission ? handleDelete : undefined}
+              showActions={hasEditPermission}
+            />
           )}
         </Card.Content>
       </Card>

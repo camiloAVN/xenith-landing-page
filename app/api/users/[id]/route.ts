@@ -35,9 +35,18 @@ export async function GET(
         name: true,
         email: true,
         role: true,
+        position: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        permissions: {
+          select: {
+            id: true,
+            module: true,
+            canView: true,
+            canEdit: true,
+          },
+        },
       },
     })
 
@@ -123,12 +132,35 @@ export async function PUT(
       ...(validatedData.name && { name: validatedData.name }),
       ...(validatedData.email && { email: validatedData.email.toLowerCase() }),
       ...(validatedData.role && { role: validatedData.role }),
+      ...(validatedData.position !== undefined && { position: validatedData.position }),
       ...(validatedData.isActive !== undefined && { isActive: validatedData.isActive }),
     }
 
     // Si se actualiza password, hash it
     if (validatedData.password) {
       updateData.password = await hash(validatedData.password, 12)
+    }
+
+    // Si se proporcionan permisos, actualizar usando transacción
+    if (validatedData.permissions) {
+      await prisma.$transaction(async (tx) => {
+        // Eliminar permisos existentes
+        await tx.userPermission.deleteMany({
+          where: { userId: id },
+        })
+
+        // Crear nuevos permisos
+        if (validatedData.permissions && validatedData.permissions.length > 0) {
+          await tx.userPermission.createMany({
+            data: validatedData.permissions.map((p) => ({
+              userId: id,
+              module: p.module,
+              canView: p.canView,
+              canEdit: p.canEdit,
+            })),
+          })
+        }
+      })
     }
 
     const user = await prisma.user.update({
@@ -139,9 +171,18 @@ export async function PUT(
         name: true,
         email: true,
         role: true,
+        position: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        permissions: {
+          select: {
+            id: true,
+            module: true,
+            canView: true,
+            canEdit: true,
+          },
+        },
       },
     })
 

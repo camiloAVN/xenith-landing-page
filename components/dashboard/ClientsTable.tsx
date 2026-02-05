@@ -10,10 +10,11 @@ import { es } from 'date-fns/locale'
 
 interface ClientsTableProps {
   clients: Client[]
-  onDelete: (id: string) => void
+  onDelete?: (id: string) => void
+  showActions?: boolean
 }
 
-export function ClientsTable({ clients, onDelete }: ClientsTableProps) {
+export function ClientsTable({ clients, onDelete, showActions = true }: ClientsTableProps) {
   if (clients.length === 0) {
     return (
       <div className="text-center py-12">
@@ -33,7 +34,7 @@ export function ClientsTable({ clients, onDelete }: ClientsTableProps) {
             <th>Nombre</th>
             <th>Empresa</th>
             <th>Email</th>
-            <th>Teléfono</th>
+            <th>Telefono</th>
             <th>Fecha de Registro</th>
             <th>Acciones</th>
           </tr>
@@ -57,28 +58,34 @@ export function ClientsTable({ clients, onDelete }: ClientsTableProps) {
                       <Eye className="w-4 h-4" />
                     </Button>
                   </Link>
-                  <Link href={`/dashboard/clientes/${client.id}/editar`}>
-                    <Button variant="ghost" size="sm" title="Editar">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                    onClick={() => {
-                      if (
-                        confirm(
-                          '¿Estás seguro de que deseas eliminar este cliente?'
-                        )
-                      ) {
-                        onDelete(client.id)
-                      }
-                    }}
-                    title="Eliminar"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {showActions && (
+                    <>
+                      <Link href={`/dashboard/clientes/${client.id}/editar`}>
+                        <Button variant="ghost" size="sm" title="Editar">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                      {onDelete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                '¿Estas seguro de que deseas eliminar este cliente?'
+                              )
+                            ) {
+                              onDelete(client.id)
+                            }
+                          }}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </>
+                  )}
                 </div>
               </td>
             </tr>

@@ -28,6 +28,7 @@ export function useConcepts() {
     category?: string
     supplierId?: string
     isActive?: string
+    silent?: boolean
   }) => {
     setLoading(true)
     setError(null)
@@ -41,6 +42,12 @@ export function useConcepts() {
 
       const response = await fetch(url.toString())
 
+      // Handle permission errors silently - just set empty array
+      if (response.status === 401 || response.status === 403) {
+        setConcepts([])
+        return
+      }
+
       if (!response.ok) {
         throw new Error('Error al obtener conceptos')
       }
@@ -50,7 +57,9 @@ export function useConcepts() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido'
       setError(message)
-      toast.error(message)
+      if (!options?.silent) {
+        toast.error(message)
+      }
     } finally {
       setLoading(false)
     }

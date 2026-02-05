@@ -1,12 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useAuthStore } from '@/store/authStore'
 
 export function useAuth() {
-  const router = useRouter()
   const { data: session, status } = useSession()
   const { user, setUser, logout: logoutStore, isLoading, setLoading } = useAuthStore()
 
@@ -34,14 +32,16 @@ export function useAuth() {
   }, [session, isPending, setUser, setLoading])
 
   const logout = async () => {
-    try {
-      await signOut({ redirect: false })
-      logoutStore()
-      router.push('/login')
-      router.refresh()
-    } catch (error) {
-      console.error('Logout error:', error)
+    // Clear auth store
+    logoutStore()
+
+    // Clear persisted auth data from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('xenith-auth-storage')
     }
+
+    // Sign out and let NextAuth handle the redirect
+    await signOut({ callbackUrl: '/login' })
   }
 
   return {

@@ -27,6 +27,7 @@ export function useProducts() {
     search?: string
     categoryId?: string
     status?: string
+    silent?: boolean
   }) => {
     setLoading(true)
     setError(null)
@@ -39,6 +40,12 @@ export function useProducts() {
 
       const response = await fetch(url.toString())
 
+      // Handle permission errors silently - just set empty array
+      if (response.status === 401 || response.status === 403) {
+        setProducts([])
+        return
+      }
+
       if (!response.ok) {
         throw new Error('Error al obtener productos')
       }
@@ -48,7 +55,9 @@ export function useProducts() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido'
       setError(message)
-      toast.error(message)
+      if (!options?.silent) {
+        toast.error(message)
+      }
     } finally {
       setLoading(false)
     }

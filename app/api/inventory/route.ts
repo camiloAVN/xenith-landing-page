@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { inventoryItemSchema } from '@/lib/validations/inventory'
+import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 
 // GET /api/inventory - List all inventory items
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canViewModule('items')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { searchParams } = new URL(request.url)
@@ -110,9 +113,12 @@ export async function GET(request: NextRequest) {
 // POST /api/inventory - Create new inventory item
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('items')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const body = await request.json()
@@ -182,7 +188,7 @@ export async function POST(request: NextRequest) {
         toStatus: item.status,
         toLocation: item.location,
         reason: 'Registro inicial',
-        performedBy: session.user.id as string,
+        performedBy: permissionCheck.userId!,
       },
     })
 
@@ -190,7 +196,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Datos inválidos', issues: error.issues },
+        { error: 'Datos invalidos', issues: error.issues },
         { status: 400 }
       )
     }
@@ -199,7 +205,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       if (error.message.includes('serialNumber')) {
         return NextResponse.json(
-          { error: 'Ya existe un item con ese número de serie' },
+          { error: 'Ya existe un item con ese numero de serie' },
           { status: 400 }
         )
       }

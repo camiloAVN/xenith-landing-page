@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { inventoryItemSchema } from '@/lib/validations/inventory'
+import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 
 // GET /api/inventory/[id] - Get single inventory item
@@ -10,9 +10,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canViewModule('items')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -112,9 +115,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('items')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -188,8 +194,8 @@ export async function PUT(
           toStatus: item.status,
           fromLocation: currentItem.location,
           toLocation: item.location,
-          reason: 'Actualización manual',
-          performedBy: session.user.id as string,
+          reason: 'Actualizacion manual',
+          performedBy: permissionCheck.userId!,
         },
       })
     }
@@ -198,7 +204,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Datos inválidos', issues: error.issues },
+        { error: 'Datos invalidos', issues: error.issues },
         { status: 400 }
       )
     }
@@ -207,7 +213,7 @@ export async function PUT(
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       if (error.message.includes('serialNumber')) {
         return NextResponse.json(
-          { error: 'Ya existe un item con ese número de serie' },
+          { error: 'Ya existe un item con ese numero de serie' },
           { status: 400 }
         )
       }
@@ -233,9 +239,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('items')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params

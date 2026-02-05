@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { quotationSchema } from '@/lib/validations/quotation'
+import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 import { Decimal } from '@prisma/client/runtime/library'
 
@@ -11,9 +11,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canViewModule('cotizaciones')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -101,7 +104,7 @@ export async function GET(
 
     if (!quotation) {
       return NextResponse.json(
-        { error: 'Cotización no encontrada' },
+        { error: 'Cotizacion no encontrada' },
         { status: 404 }
       )
     }
@@ -110,7 +113,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching quotation:', error)
     return NextResponse.json(
-      { error: 'Error al obtener cotización' },
+      { error: 'Error al obtener cotizacion' },
       { status: 500 }
     )
   }
@@ -122,9 +125,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('cotizaciones')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -291,14 +297,14 @@ export async function PUT(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Datos inválidos', issues: error.issues },
+        { error: 'Datos invalidos', issues: error.issues },
         { status: 400 }
       )
     }
 
     console.error('Error updating quotation:', error)
     return NextResponse.json(
-      { error: 'Error al actualizar cotización' },
+      { error: 'Error al actualizar cotizacion' },
       { status: 500 }
     )
   }
@@ -310,9 +316,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('cotizaciones')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -324,7 +333,7 @@ export async function DELETE(
 
     if (!quotation) {
       return NextResponse.json(
-        { error: 'Cotización no encontrada' },
+        { error: 'Cotizacion no encontrada' },
         { status: 404 }
       )
     }
@@ -338,7 +347,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting quotation:', error)
     return NextResponse.json(
-      { error: 'Error al eliminar cotización' },
+      { error: 'Error al eliminar cotizacion' },
       { status: 500 }
     )
   }

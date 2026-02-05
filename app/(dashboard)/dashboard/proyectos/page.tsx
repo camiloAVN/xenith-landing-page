@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useProjects } from '@/hooks/useProjects'
+import { usePermissions } from '@/hooks/usePermissions'
 import { ProjectsTable } from '@/components/dashboard/ProjectsTable'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -13,8 +14,11 @@ import { statusLabels, priorityLabels, ProjectStatus, Priority } from '@/lib/val
 
 export default function ProjectsPage() {
   const { projects, isLoading, searchQuery, filters, setSearchQuery, setFilters, fetchProjects, deleteProject } = useProjects()
+  const { canEdit } = usePermissions()
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const [showFilters, setShowFilters] = useState(false)
+
+  const hasEditPermission = canEdit('proyectos')
 
   useEffect(() => {
     fetchProjects({ search: searchQuery, ...filters })
@@ -64,12 +68,14 @@ export default function ProjectsPage() {
             Gestiona tus proyectos y su progreso
           </p>
         </div>
-        <Link href="/dashboard/proyectos/nuevo">
-          <Button variant="primary">
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Proyecto
-          </Button>
-        </Link>
+        {hasEditPermission && (
+          <Link href="/dashboard/proyectos/nuevo">
+            <Button variant="primary">
+              <Plus className="w-4 h-4 mr-2" />
+              Nuevo Proyecto
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Card>
@@ -122,7 +128,11 @@ export default function ProjectsPage() {
               <p className="text-gray-400 mt-4">Cargando proyectos...</p>
             </div>
           ) : (
-            <ProjectsTable projects={projects} onDelete={handleDelete} />
+            <ProjectsTable
+              projects={projects}
+              onDelete={hasEditPermission ? handleDelete : undefined}
+              showActions={hasEditPermission}
+            />
           )}
         </Card.Content>
       </Card>

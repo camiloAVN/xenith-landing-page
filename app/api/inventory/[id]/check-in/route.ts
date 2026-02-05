@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { checkInOutSchema } from '@/lib/validations/inventory'
+import { canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 
 // POST /api/inventory/[id]/check-in - Check in inventory item
@@ -10,9 +10,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('items')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -67,7 +70,7 @@ export async function POST(
         toLocation: validatedData.location || currentItem.location,
         reason: validatedData.reason,
         reference: validatedData.reference,
-        performedBy: session.user.id as string,
+        performedBy: permissionCheck.userId!,
       },
     })
 

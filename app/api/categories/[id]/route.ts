@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { categorySchema } from '@/lib/validations/category'
+import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 
 // GET /api/categories/[id] - Get single category
@@ -10,9 +10,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canViewModule('categorias')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -33,7 +36,7 @@ export async function GET(
 
     if (!category) {
       return NextResponse.json(
-        { error: 'Categoría no encontrada' },
+        { error: 'Categoria no encontrada' },
         { status: 404 }
       )
     }
@@ -42,7 +45,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching category:', error)
     return NextResponse.json(
-      { error: 'Error al obtener categoría' },
+      { error: 'Error al obtener categoria' },
       { status: 500 }
     )
   }
@@ -54,9 +57,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('categorias')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -85,7 +91,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Datos inválidos', issues: error.issues },
+        { error: 'Datos invalidos', issues: error.issues },
         { status: 400 }
       )
     }
@@ -93,14 +99,14 @@ export async function PUT(
     // Check for unique constraint violation
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       return NextResponse.json(
-        { error: 'Ya existe una categoría con ese nombre' },
+        { error: 'Ya existe una categoria con ese nombre' },
         { status: 400 }
       )
     }
 
     console.error('Error updating category:', error)
     return NextResponse.json(
-      { error: 'Error al actualizar categoría' },
+      { error: 'Error al actualizar categoria' },
       { status: 500 }
     )
   }
@@ -112,9 +118,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('categorias')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -131,7 +140,7 @@ export async function DELETE(
 
     if (!category) {
       return NextResponse.json(
-        { error: 'Categoría no encontrada' },
+        { error: 'Categoria no encontrada' },
         { status: 404 }
       )
     }
@@ -140,7 +149,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            'No se puede eliminar la categoría porque tiene productos asociados',
+            'No se puede eliminar la categoria porque tiene productos asociados',
         },
         { status: 400 }
       )
@@ -154,7 +163,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting category:', error)
     return NextResponse.json(
-      { error: 'Error al eliminar categoría' },
+      { error: 'Error al eliminar categoria' },
       { status: 500 }
     )
   }

@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { supplierSchema } from '@/lib/validations/supplier'
+import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 
 // GET /api/suppliers - List all suppliers
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canViewModule('contratistas')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { searchParams } = new URL(request.url)
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching suppliers:', error)
     return NextResponse.json(
-      { error: 'Error al obtener proveedores' },
+      { error: 'Error al obtener contratistas' },
       { status: 500 }
     )
   }
@@ -46,9 +49,12 @@ export async function GET(request: NextRequest) {
 // POST /api/suppliers - Create new supplier
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('contratistas')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const body = await request.json()
@@ -80,14 +86,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Datos inválidos', issues: error.issues },
+        { error: 'Datos invalidos', issues: error.issues },
         { status: 400 }
       )
     }
 
     console.error('Error creating supplier:', error)
     return NextResponse.json(
-      { error: 'Error al crear proveedor' },
+      { error: 'Error al crear contratista' },
       { status: 500 }
     )
   }

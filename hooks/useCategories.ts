@@ -22,7 +22,7 @@ export function useCategories() {
     setSearchQuery,
   } = useCategoryStore()
 
-  const fetchCategories = useCallback(async (search?: string) => {
+  const fetchCategories = useCallback(async (search?: string, options?: { silent?: boolean }) => {
     setLoading(true)
     setError(null)
 
@@ -34,6 +34,12 @@ export function useCategories() {
 
       const response = await fetch(url.toString())
 
+      // Handle permission errors silently - just set empty array
+      if (response.status === 401 || response.status === 403) {
+        setCategories([])
+        return
+      }
+
       if (!response.ok) {
         throw new Error('Error al obtener categorías')
       }
@@ -43,7 +49,9 @@ export function useCategories() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido'
       setError(message)
-      toast.error(message)
+      if (!options?.silent) {
+        toast.error(message)
+      }
     } finally {
       setLoading(false)
     }

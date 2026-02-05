@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { bulkAdjustmentSchema } from '@/lib/validations/bulkInventory'
+import { canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 
 // POST /api/inventory/bulk/[productId]/adjust - Adjust bulk inventory quantity
@@ -10,9 +10,12 @@ export async function POST(
   { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('inventario')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { productId } = await params
@@ -92,7 +95,7 @@ export async function POST(
           newQty,
           reason: validatedData.reason,
           reference: validatedData.reference || null,
-          performedBy: session.user.id as string,
+          performedBy: permissionCheck.userId!,
         },
         include: {
           user: {

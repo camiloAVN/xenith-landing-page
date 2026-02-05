@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { supplierSchema } from '@/lib/validations/supplier'
+import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 
 // GET /api/suppliers/[id] - Get single supplier
@@ -10,9 +10,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canViewModule('contratistas')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -41,7 +44,7 @@ export async function GET(
 
     if (!supplier) {
       return NextResponse.json(
-        { error: 'Proveedor no encontrado' },
+        { error: 'Contratista no encontrado' },
         { status: 404 }
       )
     }
@@ -50,7 +53,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching supplier:', error)
     return NextResponse.json(
-      { error: 'Error al obtener proveedor' },
+      { error: 'Error al obtener contratista' },
       { status: 500 }
     )
   }
@@ -62,9 +65,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('contratistas')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -98,14 +104,14 @@ export async function PUT(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Datos inválidos', issues: error.issues },
+        { error: 'Datos invalidos', issues: error.issues },
         { status: 400 }
       )
     }
 
     console.error('Error updating supplier:', error)
     return NextResponse.json(
-      { error: 'Error al actualizar proveedor' },
+      { error: 'Error al actualizar contratista' },
       { status: 500 }
     )
   }
@@ -117,9 +123,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const permissionCheck = await canEditModule('contratistas')
+    if (!permissionCheck.hasPermission) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: permissionCheck.status }
+      )
     }
 
     const { id } = await params
@@ -136,7 +145,7 @@ export async function DELETE(
 
     if (!supplier) {
       return NextResponse.json(
-        { error: 'Proveedor no encontrado' },
+        { error: 'Contratista no encontrado' },
         { status: 404 }
       )
     }
@@ -145,7 +154,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            'No se puede eliminar el proveedor porque tiene productos asociados',
+            'No se puede eliminar el contratista porque tiene productos asociados',
         },
         { status: 400 }
       )
@@ -159,7 +168,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting supplier:', error)
     return NextResponse.json(
-      { error: 'Error al eliminar proveedor' },
+      { error: 'Error al eliminar contratista' },
       { status: 500 }
     )
   }

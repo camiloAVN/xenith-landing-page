@@ -30,6 +30,7 @@ export function useRfidTags() {
   const fetchTags = useCallback(async (options?: {
     search?: string
     status?: string
+    silent?: boolean
   }) => {
     setLoading(true)
     setError(null)
@@ -41,6 +42,12 @@ export function useRfidTags() {
 
       const response = await fetch(url.toString())
 
+      // Handle permission errors silently - just set empty array
+      if (response.status === 401 || response.status === 403) {
+        setTags([])
+        return
+      }
+
       if (!response.ok) {
         throw new Error('Error al obtener tags RFID')
       }
@@ -50,18 +57,26 @@ export function useRfidTags() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido'
       setError(message)
-      toast.error(message)
+      if (!options?.silent) {
+        toast.error(message)
+      }
     } finally {
       setLoading(false)
     }
   }, [setTags, setLoading, setError])
 
-  const fetchUnknownTags = useCallback(async () => {
+  const fetchUnknownTags = useCallback(async (options?: { silent?: boolean }) => {
     setLoading(true)
     setError(null)
 
     try {
       const response = await fetch('/api/rfid/tags/unknown')
+
+      // Handle permission errors silently - just set empty array
+      if (response.status === 401 || response.status === 403) {
+        setUnknownTags([])
+        return
+      }
 
       if (!response.ok) {
         throw new Error('Error al obtener tags desconocidos')
@@ -72,7 +87,9 @@ export function useRfidTags() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido'
       setError(message)
-      toast.error(message)
+      if (!options?.silent) {
+        toast.error(message)
+      }
     } finally {
       setLoading(false)
     }

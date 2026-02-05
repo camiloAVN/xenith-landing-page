@@ -19,6 +19,7 @@ model User {
   image         String?
   password      String?   // For credentials provider
   role          UserRole  @default(USER)
+  position      String?   // Cargo/puesto del usuario
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -30,8 +31,27 @@ model User {
   quotations         Quotation[]
   inventoryMovements InventoryMovement[]
   bulkMovements      BulkMovement[]
+  permissions        UserPermission[]
 
   @@map("users")
+}
+
+// UserPermission - Permisos granulares por modulo
+model UserPermission {
+  id        String   @id @default(cuid())
+  userId    String
+  module    String   // Nombre del modulo: dashboard, proyectos, clientes, etc.
+  canView   Boolean  @default(false)
+  canEdit   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, module])
+  @@index([userId])
+  @@map("user_permissions")
 }
 
 model Account {
