@@ -7,10 +7,18 @@ import { useProjects } from '@/hooks/useProjects'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { ArrowLeft, Edit, User, Building2, Calendar, DollarSign, Trash2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Edit, User, Building2, Calendar, DollarSign, Trash2, ListTodo, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { statusLabels, statusColors, priorityLabels, priorityColors, Project } from '@/lib/validations/project'
+import {
+  statusLabels,
+  statusColors,
+  priorityLabels,
+  priorityColors,
+  taskStatusLabels,
+  taskStatusColors,
+  Project,
+} from '@/lib/validations/project'
 
 export default function ProjectDetailPage({
   params,
@@ -178,6 +186,57 @@ export default function ProjectDetailPage({
               )}
             </Card.Content>
           </Card>
+
+          {/* Tasks Section */}
+          {projectData.tasks && projectData.tasks.length > 0 && (
+            <Card>
+              <Card.Header>
+                <div className="flex items-center gap-2">
+                  <ListTodo className="w-5 h-5 text-violet-400" />
+                  <h2 className="text-xl font-semibold">Tareas ({projectData.tasks.length})</h2>
+                </div>
+              </Card.Header>
+              <Card.Content>
+                <div className="space-y-3">
+                  {projectData.tasks.map((task: any) => (
+                    <div
+                      key={task.id}
+                      className="p-4 rounded-lg bg-gray-800/50 border border-gray-700/50"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{task.title}</h4>
+                          {task.description && (
+                            <p className="text-sm text-gray-400 mt-1">{task.description}</p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2 mt-3">
+                            <Badge className={taskStatusColors[task.status as keyof typeof taskStatusColors]}>
+                              {taskStatusLabels[task.status as keyof typeof taskStatusLabels]}
+                            </Badge>
+                            <Badge className={priorityColors[task.priority as keyof typeof priorityColors]}>
+                              {priorityLabels[task.priority as keyof typeof priorityLabels]}
+                            </Badge>
+                            {task.assignedUser && (
+                              <span className="flex items-center gap-1 text-sm text-gray-400">
+                                <User className="w-3.5 h-3.5" />
+                                {task.assignedUser.name || task.assignedUser.email}
+                              </span>
+                            )}
+                            {task.dueDate && (
+                              <span className="flex items-center gap-1 text-sm text-gray-400">
+                                <Clock className="w-3.5 h-3.5" />
+                                {format(new Date(task.dueDate), 'dd MMM yyyy', { locale: es })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card.Content>
+            </Card>
+          )}
 
           {projectData.quotations && projectData.quotations.length > 0 && (
             <Card>

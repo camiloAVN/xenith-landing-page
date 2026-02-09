@@ -102,37 +102,59 @@ export async function POST(request: NextRequest) {
     // Convert budget string to Decimal if provided
     const budget = validatedData.budget ? new Decimal(validatedData.budget) : null
 
-    const project = await prisma.project.create({
-      data: {
-        title: validatedData.title,
-        description: validatedData.description,
-        status: validatedData.status,
-        clientId: validatedData.clientId,
-        assignedTo: validatedData.assignedTo,
-        priority: validatedData.priority,
-        startDate: validatedData.startDate ? new Date(validatedData.startDate) : null,
-        endDate: validatedData.endDate ? new Date(validatedData.endDate) : null,
-        budget,
-        tags: validatedData.tags || [],
-        notes: validatedData.notes || null,
-      },
-      include: {
-        client: {
-          select: {
-            id: true,
-            name: true,
-            company: true,
-            email: true,
-          },
+    const tasks = validatedData.tasks || []
+
+    const project = await prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          title: validatedData.title,
+          description: validatedData.description,
+          status: validatedData.status,
+          clientId: validatedData.clientId,
+          assignedTo: validatedData.assignedTo,
+          priority: validatedData.priority,
+          startDate: validatedData.startDate ? new Date(validatedData.startDate) : null,
+          endDate: validatedData.endDate ? new Date(validatedData.endDate) : null,
+          budget,
+          tags: validatedData.tags || [],
+          notes: validatedData.notes || null,
         },
-        assignedUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+      })
+
+      if (tasks.length > 0) {
+        await tx.task.createMany({
+          data: tasks.map((task) => ({
+            projectId: created.id,
+            title: task.title,
+            description: task.description || null,
+            assignedTo: task.assignedTo || null,
+            dueDate: task.dueDate ? new Date(task.dueDate) : null,
+            priority: task.priority,
+          })),
+        })
+      }
+
+      return tx.project.findUnique({
+        where: { id: created.id },
+        include: {
+          client: {
+            select: {
+              id: true,
+              name: true,
+              company: true,
+              email: true,
+            },
           },
+          assignedUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          tasks: true,
         },
-      },
+      })
     })
 
     return NextResponse.json(project, { status: 201 })
