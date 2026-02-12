@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict IQ3zsIZEqdqbja4hEjPFzcVvxLDOl3ndKgnWZEEI5MChmJ1wT91zcyr202x0zGc
+\restrict fDpkaydutt6xQcD5O0Efl8X9o7mkqKCmdexlgdZzyWd7PM3jGdeEIaEjj1u72Q2
 
 -- Dumped from database version 18.1 (Debian 18.1-1.pgdg13+2)
 -- Dumped by pg_dump version 18.1 (Debian 18.1-1.pgdg13+2)
@@ -898,9 +898,9 @@ cmlfef5ld000ge7kezkpkivgx	cmkgbj4xn000013mxdw7xzepa	items	t	f	2026-02-09 16:40:5
 --
 
 COPY public.users (id, email, "emailVerified", name, image, password, "createdAt", "updatedAt", "isActive", role, "position") FROM stdin;
-cmkgaxwe30000cedhjzqvquvv	camilo.vargas@xenith.com.co	\N	Camilo Vargas	\N	$2b$12$fxrWX2h4ldZrGpO6QkzQsufe8VUx92fIe6YY7eS/qcSKCbZZXXyo.	2026-01-16 03:11:33.435	2026-02-05 16:42:50.03	t	SUPERADMIN	\N
 cml9rdo2q00001chijjb6vzvw	carolina.pineda@xenith.com.co	\N	carolina pineda	\N	$2b$12$imGrDjbmYNNvaZJfYyprDOIgJSxqzppqJxWJBemwVAVSWLkleBYBC	2026-02-05 17:57:02.114	2026-02-09 16:39:49.931	t	ADMIN	directora de compras
 cmkgbj4xn000013mxdw7xzepa	nicolas.ramirez@xenith.com.co	\N	nicolas ramirez	\N	$2b$12$gX7koZenD7bXIVQ.kerKQe//tTw/5JU30XGY7CI4C.DsmBYuWet42	2026-01-16 03:28:04.284	2026-02-09 16:40:53.528	t	USER	coordinador de audio
+cmkgaxwe30000cedhjzqvquvv	camilo.vargas@xenith.com.co	\N	Camilo Vargas	\N	$2b$12$ruvTvoiiN3Ze5KJAurIGOu1ENl47RbVMpcyqdgiWUPzzJUCr0pIJy	2026-01-16 03:11:33.435	2026-02-12 22:06:02.062	t	SUPERADMIN	\N
 \.
 
 
@@ -1655,5 +1655,5 @@ ALTER TABLE ONLY public.user_permissions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict IQ3zsIZEqdqbja4hEjPFzcVvxLDOl3ndKgnWZEEI5MChmJ1wT91zcyr202x0zGc
+\unrestrict fDpkaydutt6xQcD5O0Efl8X9o7mkqKCmdexlgdZzyWd7PM3jGdeEIaEjj1u72Q2
 
