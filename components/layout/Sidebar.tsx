@@ -22,6 +22,7 @@ import {
   Briefcase,
   UserCircle,
   ListTodo,
+  History,
   LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -140,6 +141,12 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       href: '/dashboard/categorias',
       icon: FolderTree,
       module: 'categorias',
+    },
+    {
+      name: 'Historial',
+      href: '/dashboard/historial',
+      icon: History,
+      module: 'historial',
     },
   ]
 

@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { hash } from 'bcrypt'
 import { createUserSchema, SUPERADMIN_EMAIL } from '@/lib/validations/user'
+import { createAuditLog, getRequestClientInfo } from '@/lib/audit/log'
 import { ZodError } from 'zod'
 
 // Helper to check if user is superadmin
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = createUserSchema.parse(body)
+    const { ipAddress, userAgent } = getRequestClientInfo(request)
 
     // Verificar que el email no exista
     const existingUser = await prisma.user.findUnique({
@@ -154,6 +156,22 @@ export async function POST(request: NextRequest) {
     })
 
     console.info(`[ADMIN] User created: ${user.email} by ${session.user.email}`)
+
+    await createAuditLog({
+      module: 'usuarios',
+      action: 'USER_CREATED',
+      entityType: 'user',
+      entityId: user.id,
+      description: `Usuario creado: ${user.email}`,
+      metadata: {
+        userId: user.id,
+        userEmail: user.email,
+        role: user.role,
+      },
+      performedBy: session.user.id!,
+      ipAddress,
+      userAgent,
+    })
 
     return NextResponse.json(user, { status: 201 })
   } catch (error) {

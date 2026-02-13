@@ -2,13 +2,61 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/prisma'
 import { hash } from 'bcrypt'
-import { updateUserSchema, SUPERADMIN_EMAIL } from '@/lib/validations/user'
+import { moduleLabels, updateUserSchema, SUPERADMIN_EMAIL } from '@/lib/validations/user'
+import { createAuditLog, getRequestClientInfo } from '@/lib/audit/log'
 import { ZodError } from 'zod'
 
 // Helper to check if user is superadmin
 async function isSuperAdmin(session: any): Promise<boolean> {
   if (!session?.user?.email) return false
   return session.user.email === SUPERADMIN_EMAIL
+}
+
+function normalizePermissions(permissions: Array<{ module: string; canView: boolean; canEdit: boolean }>) {
+  return permissions
+    .map((p) => `${p.module}:${p.canView ? 1 : 0}:${p.canEdit ? 1 : 0}`)
+    .sort()
+}
+
+function permissionLevel(permission: { canView: boolean; canEdit: boolean } | undefined) {
+  if (!permission) return 'sin acceso'
+  if (permission.canEdit) return 'editar'
+  if (permission.canView) return 'ver'
+  return 'sin acceso'
+}
+
+function buildPermissionChangesDescription(
+  previousPermissions: Array<{ module: string; canView: boolean; canEdit: boolean }>,
+  newPermissions: Array<{ module: string; canView: boolean; canEdit: boolean }>
+) {
+  const previousMap = new Map(
+    previousPermissions.map((permission) => [permission.module, permission])
+  )
+  const newMap = new Map(
+    newPermissions.map((permission) => [permission.module, permission])
+  )
+
+  const modules = Array.from(new Set([
+    ...Array.from(previousMap.keys()),
+    ...Array.from(newMap.keys()),
+  ])).sort()
+
+  const changes: string[] = []
+
+  for (const module of modules) {
+    const previous = previousMap.get(module)
+    const next = newMap.get(module)
+
+    const previousLevel = permissionLevel(previous)
+    const nextLevel = permissionLevel(next)
+
+    if (previousLevel !== nextLevel) {
+      const label = moduleLabels[module as keyof typeof moduleLabels] || module
+      changes.push(`${label}: ${previousLevel} -> ${nextLevel}`)
+    }
+  }
+
+  return changes
 }
 
 // GET /api/users/[id] - Get single user
@@ -85,10 +133,20 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
     const validatedData = updateUserSchema.parse(body)
+    const { ipAddress, userAgent } = getRequestClientInfo(request)
 
     // Verificar que el usuario existe
     const existingUser = await prisma.user.findUnique({
       where: { id },
+      include: {
+        permissions: {
+          select: {
+            module: true,
+            canView: true,
+            canEdit: true,
+          },
+        },
+      },
     })
 
     if (!existingUser) {
@@ -188,6 +246,78 @@ export async function PUT(
 
     console.info(`[ADMIN] User updated: ${user.email} by ${session.user.email}`)
 
+    const roleChanged =
+      validatedData.role !== undefined && validatedData.role !== existingUser.role
+    const statusChanged =
+      validatedData.isActive !== undefined && validatedData.isActive !== existingUser.isActive
+    const permissionsChanged =
+      validatedData.permissions !== undefined &&
+      JSON.stringify(normalizePermissions(existingUser.permissions)) !==
+        JSON.stringify(normalizePermissions(validatedData.permissions))
+
+    if (roleChanged) {
+      await createAuditLog({
+        module: 'usuarios',
+        action: 'USER_ROLE_CHANGED',
+        entityType: 'user',
+        entityId: user.id,
+        description: `Cambio de rol para ${user.email}: ${existingUser.role} -> ${user.role}`,
+        metadata: {
+          userId: user.id,
+          userEmail: user.email,
+          previousRole: existingUser.role,
+          newRole: user.role,
+        },
+        performedBy: session.user.id!,
+        ipAddress,
+        userAgent,
+      })
+    }
+
+    if (permissionsChanged) {
+      const permissionChanges = buildPermissionChangesDescription(
+        existingUser.permissions,
+        validatedData.permissions || []
+      )
+
+      await createAuditLog({
+        module: 'usuarios',
+        action: 'USER_PERMISSIONS_CHANGED',
+        entityType: 'user',
+        entityId: user.id,
+        description: `Permisos actualizados para ${user.email} (${permissionChanges.length} cambio${permissionChanges.length === 1 ? '' : 's'})`,
+        metadata: {
+          userId: user.id,
+          userEmail: user.email,
+          changes: permissionChanges,
+          previousPermissions: existingUser.permissions,
+          newPermissions: validatedData.permissions,
+        },
+        performedBy: session.user.id!,
+        ipAddress,
+        userAgent,
+      })
+    }
+
+    if (statusChanged) {
+      await createAuditLog({
+        module: 'usuarios',
+        action: 'USER_STATUS_CHANGED',
+        entityType: 'user',
+        entityId: user.id,
+        description: `${user.email} fue ${user.isActive ? 'activado' : 'desactivado'}`,
+        metadata: {
+          userId: user.id,
+          userEmail: user.email,
+          previousIsActive: existingUser.isActive,
+          newIsActive: user.isActive,
+        },
+        performedBy: session.user.id!,
+        ipAddress,
+        userAgent,
+      })
+    }
+
     return NextResponse.json(user)
   } catch (error) {
     if (error instanceof ZodError) {
@@ -221,6 +351,7 @@ export async function DELETE(
     }
 
     const { id } = await params
+    const { ipAddress, userAgent } = getRequestClientInfo(request)
 
     // Verificar que el usuario existe
     const existingUser = await prisma.user.findUnique({
@@ -249,6 +380,21 @@ export async function DELETE(
     })
 
     console.info(`[ADMIN] User deactivated: ${existingUser.email} by ${session.user.email}`)
+
+    await createAuditLog({
+      module: 'usuarios',
+      action: 'USER_DEACTIVATED',
+      entityType: 'user',
+      entityId: existingUser.id,
+      description: `Usuario desactivado: ${existingUser.email}`,
+      metadata: {
+        userId: existingUser.id,
+        userEmail: existingUser.email,
+      },
+      performedBy: session.user.id!,
+      ipAddress,
+      userAgent,
+    })
 
     return NextResponse.json({ message: 'Usuario desactivado exitosamente' })
   } catch (error) {

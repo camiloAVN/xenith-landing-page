@@ -33,8 +33,34 @@ model User {
   bulkMovements      BulkMovement[]
   permissions        UserPermission[]
   assignedTasks      Task[]    @relation("TaskAssignee")
+  auditLogs          AuditLog[]
 
   @@map("users")
+}
+
+// AuditLog - Registro de auditoria para acciones administrativas criticas
+model AuditLog {
+  id          String   @id @default(cuid())
+  module      String   // Modulo funcional: usuarios, inventario, etc.
+  action      String   // Tipo de accion: ROLE_CHANGED, USER_CREATED, etc.
+  entityType  String   // Tipo de entidad afectada: user, permission, etc.
+  entityId    String?  // ID de la entidad afectada (si aplica)
+  description String   @db.Text
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  performedBy String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [performedBy], references: [id], onDelete: Restrict)
+
+  @@index([module])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([performedBy])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 // UserPermission - Permisos granulares por modulo
