@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { ImagePlus, X, Image as ImageIcon } from 'lucide-react'
+import { ImagePlus, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Button } from './Button'
+import toast from 'react-hot-toast'
 
 interface ImagePickerProps {
   value?: string | null
@@ -23,28 +24,63 @@ export function ImagePicker({
   error,
 }: ImagePickerProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = useCallback(
-    (file: File) => {
+    async (file: File) => {
       if (!file.type.startsWith('image/')) {
+        toast.error('Selecciona un archivo de imagen valido')
         return
       }
 
       // Max file size: 5MB
       if (file.size > 5 * 1024 * 1024) {
-        alert('La imagen no puede ser mayor a 5MB')
+        toast.error('La imagen no puede ser mayor a 5MB')
         return
       }
 
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const result = e.target?.result as string
-        onChange(result)
+      try {
+        setIsUploading(true)
+
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const uploadResponse = await fetch('/api/uploads/products', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!uploadResponse.ok) {
+          const error = await uploadResponse.json().catch(() => ({}))
+          throw new Error(error.error || 'No se pudo subir la imagen')
+        }
+
+        const uploadData = await uploadResponse.json()
+        const nextUrl = uploadData.url as string
+        const previousUrl = value || null
+
+        onChange(nextUrl)
+
+        // Best effort: if image was replaced, remove old file from R2.
+        if (previousUrl && previousUrl !== nextUrl) {
+          await fetch('/api/uploads/products', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: previousUrl }),
+          })
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'No se pudo subir la imagen'
+        toast.error(message)
+      } finally {
+        setIsUploading(false)
       }
-      reader.readAsDataURL(file)
     },
-    [onChange]
+    [onChange, value]
   )
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,10 +115,44 @@ export function ImagePicker({
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onChange(null)
-    if (inputRef.current) {
-      inputRef.current.value = ''
+    if (isUploading) return
+
+    const run = async () => {
+      if (!value) {
+        onChange(null)
+        return
+      }
+
+      const confirmed = confirm('¿Eliminar la imagen del producto? Esta accion no se puede deshacer.')
+      if (!confirmed) return
+
+      try {
+        const response = await fetch('/api/uploads/products', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: value }),
+        })
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}))
+          throw new Error(error.error || 'No se pudo eliminar la imagen')
+        }
+
+        onChange(null)
+        if (inputRef.current) {
+          inputRef.current.value = ''
+        }
+        toast.success('Imagen eliminada')
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'No se pudo eliminar la imagen'
+        toast.error(message)
+      }
     }
+
+    void run()
   }
 
   const handleClick = () => {
@@ -110,7 +180,7 @@ export function ImagePicker({
         accept="image/*"
         onChange={handleInputChange}
         className="hidden"
-        disabled={disabled}
+        disabled={disabled || isUploading}
       />
 
       <div
@@ -124,7 +194,7 @@ export function ImagePicker({
           isDragging
             ? 'border-orange-500 bg-orange-500/10'
             : 'border-gray-700 hover:border-gray-600 bg-gray-900/50',
-          disabled && 'opacity-50 cursor-not-allowed',
+          (disabled || isUploading) && 'opacity-50 cursor-not-allowed',
           error && 'border-red-500',
           value ? 'p-2' : 'p-6'
         )}
@@ -147,21 +217,25 @@ export function ImagePicker({
               variant="ghost"
               size="sm"
               onClick={handleRemove}
-              disabled={disabled}
+              disabled={disabled || isUploading}
               className="absolute top-0 right-0 p-1 bg-gray-900/80 hover:bg-red-500/20 text-red-400 rounded-full"
             >
               <X className="w-4 h-4" />
             </Button>
 
             <p className="text-xs text-gray-500 text-center mt-2">
-              Click en la imagen para ampliar o click fuera para cambiar
+              {isUploading
+                ? 'Subiendo imagen...'
+                : 'Click en la imagen para ampliar o click fuera para cambiar'}
             </p>
           </div>
         ) : (
           <div className="text-center">
             <ImagePlus className="w-10 h-10 mx-auto mb-2 text-gray-500" />
             <p className="text-sm text-gray-400 mb-1">
-              Click para seleccionar o arrastra una imagen
+              {isUploading
+                ? 'Subiendo imagen...'
+                : 'Click para seleccionar o arrastra una imagen'}
             </p>
             <p className="text-xs text-gray-500">
               PNG, JPG, WEBP hasta 5MB
