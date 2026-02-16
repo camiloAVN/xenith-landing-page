@@ -6,10 +6,15 @@ import { createUserSchema, SUPERADMIN_EMAIL } from '@/lib/validations/user'
 import { createAuditLog, getRequestClientInfo } from '@/lib/audit/log'
 import { ZodError } from 'zod'
 
-// Helper to check if user is superadmin
-async function isSuperAdmin(session: any): Promise<boolean> {
-  if (!session?.user?.email) return false
-  return session.user.email === SUPERADMIN_EMAIL
+// Helper to check if user is superadmin or admin
+async function isAdminOrAbove(session: any): Promise<boolean> {
+  if (!session?.user?.id) return false
+  if (session.user.email === SUPERADMIN_EMAIL) return true
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  })
+  return user?.role === 'ADMIN' || user?.role === 'SUPERADMIN'
 }
 
 // GET /api/users - List all users
@@ -39,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Para la lista completa, solo superadmin
-    if (!await isSuperAdmin(session)) {
+    if (!await isAdminOrAbove(session)) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
@@ -84,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Solo superadmin puede crear usuarios
-    if (!await isSuperAdmin(session)) {
+    if (!await isAdminOrAbove(session)) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 

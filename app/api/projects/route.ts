@@ -4,6 +4,11 @@ import { projectSchema } from '@/lib/validations/project'
 import { canViewModule, canEditModule } from '@/lib/auth/check-permission'
 import { ZodError } from 'zod'
 import { Decimal } from '@prisma/client/runtime/library'
+import { Resend } from 'resend'
+import { render } from '@react-email/components'
+import { TaskNotificationTemplate } from '@/components/email/task-notification-template'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 // GET /api/projects - List all projects with filters
 export async function GET(request: NextRequest) {
@@ -174,6 +179,53 @@ export async function POST(request: NextRequest) {
         },
       })
     })
+
+    // Fire-and-forget: send notification emails
+    if (validatedData.notifyUsers && tasks.length > 0) {
+      const assignedTasks = tasks.filter((t) => t.assignedTo)
+      if (assignedTasks.length > 0) {
+        // Group tasks by userId
+        const tasksByUser = new Map<string, typeof assignedTasks>()
+        for (const task of assignedTasks) {
+          const userId = task.assignedTo!
+          if (!tasksByUser.has(userId)) tasksByUser.set(userId, [])
+          tasksByUser.get(userId)!.push(task)
+        }
+
+        // Fetch user info and send emails
+        const userIds = Array.from(tasksByUser.keys())
+        prisma.user
+          .findMany({
+            where: { id: { in: userIds }, isActive: true },
+            select: { id: true, name: true, email: true },
+          })
+          .then(async (users) => {
+            for (const user of users) {
+              const userTasks = tasksByUser.get(user.id) || []
+              const html = await render(
+                TaskNotificationTemplate({
+                  userName: user.name || user.email,
+                  projectTitle: validatedData.title,
+                  tasks: userTasks.map((t) => ({
+                    title: t.title,
+                    description: t.description,
+                    priority: t.priority,
+                    dueDate: t.dueDate || null,
+                  })),
+                })
+              )
+              await resend.emails.send({
+                from: 'XENITH <onboarding@resend.dev>',
+                to: [user.email],
+                subject: `Tareas asignadas - ${validatedData.title}`,
+                html,
+              })
+            }
+            console.info(`[TASK-NOTIFY] Emails sent to ${users.length} user(s) for project "${validatedData.title}"`)
+          })
+          .catch((err) => console.error('[TASK-NOTIFY] Error sending emails:', err))
+      }
+    }
 
     return NextResponse.json(project, { status: 201 })
   } catch (error) {

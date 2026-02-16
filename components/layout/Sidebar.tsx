@@ -23,6 +23,7 @@ import {
   UserCircle,
   ListTodo,
   History,
+  Mail,
   LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -46,7 +47,7 @@ interface NavItem {
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  const { canView, isSuperAdmin, isLoading } = usePermissions()
+  const { canView, isSuperAdmin, isAdmin, isLoading } = usePermissions()
 
   const navigation: NavItem[] = [
     {
@@ -303,8 +304,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   </>
                 )}
 
-                {/* Admin Section - Solo visible para superadmin */}
-                {isSuperAdmin && (
+                {/* Admin Section - Visible para ADMIN y SUPERADMIN */}
+                {isAdmin && (
                   <>
                     <div className="mt-6 mb-2 px-4">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
@@ -326,6 +327,21 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                         >
                           <UserCog className="w-5 h-5" />
                           Usuarios
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/dashboard/comunicados"
+                          onClick={onClose}
+                          className={cn(
+                            'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
+                            isActive('/dashboard/comunicados')
+                              ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                              : 'text-gray-400 hover:text-white hover:bg-gray-900'
+                          )}
+                        >
+                          <Mail className="w-5 h-5" />
+                          Comunicados
                         </Link>
                       </li>
                     </ul>

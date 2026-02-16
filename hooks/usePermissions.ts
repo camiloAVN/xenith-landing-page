@@ -16,6 +16,7 @@ interface UsePermissionsReturn {
   canView: (module: SystemModule) => boolean
   canEdit: (module: SystemModule) => boolean
   isSuperAdmin: boolean
+  isAdmin: boolean
   refetch: () => Promise<void>
 }
 
@@ -23,8 +24,10 @@ export function usePermissions(): UsePermissionsReturn {
   const { data: session, status } = useSession()
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   const isSuperAdmin = session?.user?.email === SUPERADMIN_EMAIL
+  const isAdmin = isSuperAdmin || userRole === 'ADMIN'
 
   const fetchPermissions = useCallback(async () => {
     if (status === 'loading') return
@@ -54,6 +57,7 @@ export function usePermissions(): UsePermissionsReturn {
       if (response.ok) {
         const data = await response.json()
         setPermissions(data.permissions || [])
+        setUserRole(data.role || null)
       }
     } catch (error) {
       console.error('Error fetching permissions:', error)
@@ -94,6 +98,7 @@ export function usePermissions(): UsePermissionsReturn {
     canView,
     canEdit,
     isSuperAdmin,
+    isAdmin,
     refetch: fetchPermissions,
   }
 }

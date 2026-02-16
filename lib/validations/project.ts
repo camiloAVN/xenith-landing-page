@@ -21,6 +21,7 @@ export const projectSchema = z.object({
   tags: z.array(z.string()).optional(),
   notes: z.string().optional(),
   tasks: z.array(taskItemSchema).optional(),
+  notifyUsers: z.boolean().optional(),
 })
 
 export type ProjectFormData = z.infer<typeof projectSchema>

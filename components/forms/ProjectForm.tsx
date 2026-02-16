@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { projectSchema, ProjectFormData, Project, statusLabels, priorityLabels } from '@/lib/validations/project'
 import { Input } from '@/components/ui/Input'
@@ -10,7 +10,7 @@ import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { format } from 'date-fns'
-import { Plus, Trash2, ListTodo } from 'lucide-react'
+import { Plus, Trash2, ListTodo, Mail } from 'lucide-react'
 
 interface ProjectFormProps {
   project?: Project | null
@@ -67,6 +67,9 @@ export function ProjectForm({
     control,
     name: 'tasks',
   })
+
+  const watchedTasks = useWatch({ control, name: 'tasks' })
+  const hasAssignedTasks = (watchedTasks || []).some((t) => t?.assignedTo)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -313,6 +316,21 @@ export function ProjectForm({
           )}
         </Card.Content>
       </Card>
+
+      {/* Notify users checkbox */}
+      {hasAssignedTasks && (
+        <label className="flex items-center gap-3 p-4 rounded-lg border border-gray-700 bg-gray-800/50 cursor-pointer hover:border-gray-600 transition-colors">
+          <input
+            type="checkbox"
+            className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-0"
+            {...register('notifyUsers')}
+          />
+          <Mail className="w-4 h-4 text-orange-400" />
+          <span className="text-sm text-gray-300">
+            Notificar a los usuarios asignados por correo
+          </span>
+        </label>
+      )}
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={onCancel}>

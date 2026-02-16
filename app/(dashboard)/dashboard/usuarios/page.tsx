@@ -69,16 +69,35 @@ export default function UsersPage() {
 
   // Check if current user is superadmin
   const isSuperAdmin = session?.user?.email === SUPERADMIN_EMAIL
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null)
 
   useEffect(() => {
     if (status === 'loading') return
 
-    if (!session?.user || session.user.email !== SUPERADMIN_EMAIL) {
+    if (!session?.user) {
       router.push('/dashboard')
       return
     }
 
-    fetchUsers()
+    // Superadmin always has access
+    if (session.user.email === SUPERADMIN_EMAIL) {
+      setHasAccess(true)
+      fetchUsers()
+      return
+    }
+
+    // Check role from profile
+    fetch('/api/profile')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.role === 'ADMIN') {
+          setHasAccess(true)
+          fetchUsers()
+        } else {
+          router.push('/dashboard')
+        }
+      })
+      .catch(() => router.push('/dashboard'))
   }, [session, status, router])
 
   const fetchUsers = async () => {
@@ -294,7 +313,7 @@ export default function UsersPage() {
     )
   }
 
-  if (!isSuperAdmin) {
+  if (!hasAccess) {
     return null
   }
 

@@ -6,10 +6,15 @@ import { moduleLabels, updateUserSchema, SUPERADMIN_EMAIL } from '@/lib/validati
 import { createAuditLog, getRequestClientInfo } from '@/lib/audit/log'
 import { ZodError } from 'zod'
 
-// Helper to check if user is superadmin
-async function isSuperAdmin(session: any): Promise<boolean> {
-  if (!session?.user?.email) return false
-  return session.user.email === SUPERADMIN_EMAIL
+// Helper to check if user is superadmin or admin
+async function isAdminOrAbove(session: any): Promise<boolean> {
+  if (!session?.user?.id) return false
+  if (session.user.email === SUPERADMIN_EMAIL) return true
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  })
+  return user?.role === 'ADMIN' || user?.role === 'SUPERADMIN'
 }
 
 function normalizePermissions(permissions: Array<{ module: string; canView: boolean; canEdit: boolean }>) {
@@ -70,7 +75,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!await isSuperAdmin(session)) {
+    if (!await isAdminOrAbove(session)) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
@@ -126,7 +131,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!await isSuperAdmin(session)) {
+    if (!await isAdminOrAbove(session)) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
@@ -346,7 +351,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!await isSuperAdmin(session)) {
+    if (!await isAdminOrAbove(session)) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
